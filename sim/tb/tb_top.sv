@@ -1,0 +1,92 @@
+`timescale 1ns/1ps
+
+module tb_top;
+
+    // ----------------------------------------------------------------
+    // Signal declarations
+    // ----------------------------------------------------------------
+    logic        rst_n;
+    logic        rate;
+    logic [31:0] txdata;
+    logic [3:0]  txdatak;
+    logic        tx_valid;
+
+    logic [31:0] rxdata;
+    logic [3:0]  rxdatak;
+    logic        decode_err;
+    logic        disp_err;
+    logic [39:0] tx_code;
+    logic        serial_tx;
+    logic        pclk;
+
+    // ----------------------------------------------------------------
+    // DUT
+    // ----------------------------------------------------------------
+    pcie_phy_model_top dut (
+        .rst_n      (rst_n),
+        .rate       (rate),
+        .txdata     (txdata),
+        .txdatak    (txdatak),
+        .tx_valid   (tx_valid),
+        .rxdata     (rxdata),
+        .rxdatak    (rxdatak),
+        .decode_err (decode_err),
+        .disp_err   (disp_err),
+        .tx_code    (tx_code),
+        .serial_tx  (serial_tx),
+        .pclk       (pclk)
+    );
+
+    // ----------------------------------------------------------------
+    // Test infrastructure
+    // ----------------------------------------------------------------
+    string tc_name;
+    int    err_count;
+
+    // Auto-generated: includes all tc/*.sv tasks and run_testcase()
+    `include "tc_dispatch.svh"
+
+    initial begin
+        // Get testcase name from plusarg
+        if (!$value$plusargs("tc=%s", tc_name))
+            tc_name = "smoke_test";
+
+        // FSDB waveform dump
+        $fsdbDumpfile({tc_name, ".fsdb"});
+        $fsdbDumpvars(0, tb_top);
+
+        // Initialize inputs
+        rst_n    = 1'b0;
+        rate     = 1'b0;
+        txdata   = 32'd0;
+        txdatak  = 4'd0;
+        tx_valid = 1'b0;
+        err_count = 0;
+
+        $display("========================================");
+        $display("[INFO] Testcase: %s", tc_name);
+        $display("========================================");
+
+        // Dispatch testcase
+        run_testcase(tc_name);
+
+        // Final report
+        $display("========================================");
+        if (err_count == 0)
+            $display("[PASS] %s — 0 errors", tc_name);
+        else
+            $display("[FAIL] %s — %0d error(s)", tc_name, err_count);
+        $display("========================================");
+
+        #100ns;
+        $finish;
+    end
+
+    // Timeout watchdog
+    initial begin
+        #1_000_000ns;
+        $display("[ERROR] Simulation timeout!");
+        $finish;
+    end
+
+endmodule
