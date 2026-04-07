@@ -14,7 +14,7 @@
 // file requires a written license from anlogic.
 //-----------------------------------------------------------------------------
 
-`include "../../RTL/rtl_timescale.v"
+`include "rtl_timescale.v"
 
 module dec_10b8b
 (

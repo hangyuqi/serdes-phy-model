@@ -13,16 +13,18 @@ module rx_path (
     logic [3:0]  decoded_rx_datak;
     logic        decoded_err_raw;
     logic        disp_err_raw;
+    logic        decoded_valid;
 
-    // Assumption for the first scaffold:
-    // - external decoder module name: decoder_8b10b_40to32
-    // - port names below may need to be adjusted to match the existing codec
     decoder_8b10b_40to32 u_decoder (
-        .rx_code    (rx_code),
-        .rxdata     (decoded_rx_data),
-        .rxdatak    (decoded_rx_datak),
-        .decode_err (decoded_err_raw),
-        .disp_err   (disp_err_raw)
+        .pclk           (pclk),
+        .rst_n          (rst_n),
+        .rx_code        (rx_code),
+        .data_valid_in  (rx_code_valid),
+        .rxdata         (decoded_rx_data),
+        .rxdatak        (decoded_rx_datak),
+        .decode_err     (decoded_err_raw),
+        .disp_err       (disp_err_raw),
+        .data_valid_out (decoded_valid)
     );
 
     always_ff @(posedge pclk or negedge rst_n) begin
@@ -31,7 +33,7 @@ module rx_path (
             rxdatak     <= '0;
             decode_err  <= 1'b0;
             disp_err    <= 1'b0;
-        end else if (rx_code_valid) begin
+        end else if (decoded_valid) begin
             rxdata      <= decoded_rx_data;
             rxdatak     <= decoded_rx_datak;
             decode_err  <= decoded_err_raw;
