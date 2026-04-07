@@ -46,6 +46,7 @@ module tx_path (
         .serial_clk    (serial_clk),
         .rst_n         (rst_n),
         .parallel_data (tx_code),
+        .data_valid    (tx_code_valid),
         .serial_tx     (serial_tx)
     );
 

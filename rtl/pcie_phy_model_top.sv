@@ -1,5 +1,5 @@
 module pcie_phy_model_top #(
-    parameter time SERIAL_CLK_HALF_PERIOD = 500ps,
+    parameter realtime SERIAL_CLK_HALF_PERIOD = 200ps,
     parameter int  PCLK_DIV               = 40
 ) (
     input  logic        rst_n,

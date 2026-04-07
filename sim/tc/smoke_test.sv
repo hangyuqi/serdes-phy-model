@@ -21,10 +21,12 @@ task smoke_test();
     // Phase 2: Send K28.5 comma (4 identical K-code bytes)
     // ----------------------------------------------------------
     @(posedge pclk);
+    #`PCS_PD;
     txdata   = 32'hBCBC_BCBC;  // K28.5 = 8'hBC
     txdatak  = 4'b1111;
     tx_valid = 1'b1;
     @(posedge pclk);
+    #`PCS_PD;
     tx_valid = 1'b0;
 
     // Wait 1 pclk for encoder pipeline (registered output)
@@ -50,10 +52,12 @@ task smoke_test();
     // Phase 3: Send data pattern D1.0, D2.0, D3.0, D4.0
     // ----------------------------------------------------------
     @(posedge pclk);
+    #`PCS_PD;
     txdata   = 32'h0403_0201;  // byte0=01, byte1=02, byte2=03, byte3=04
     txdatak  = 4'b0000;
     tx_valid = 1'b1;
     @(posedge pclk);
+    #`PCS_PD;
     tx_valid = 1'b0;
 
     @(posedge pclk);
@@ -82,10 +86,12 @@ task smoke_test();
     // ----------------------------------------------------------
     // Send another data word so tx_code is stable for serializer to load
     @(posedge pclk);
+    #`PCS_PD;
     txdata   = 32'hDEAD_BEEF;
     txdatak  = 4'b0000;
     tx_valid = 1'b1;
     @(posedge pclk);
+    #`PCS_PD;
     tx_valid = 1'b0;
     @(posedge pclk);
     // tx_code now has the encoding of DEADBEEF
@@ -119,10 +125,12 @@ task smoke_test();
     // ----------------------------------------------------------
     for (int i = 0; i < 8; i++) begin
         @(posedge pclk);
+        #`PCS_PD;
         txdata   = $urandom;
         txdatak  = 4'b0000;
         tx_valid = 1'b1;
         @(posedge pclk);
+        #`PCS_PD;
         tx_valid = 1'b0;
         @(posedge pclk);
         if (tx_code === 40'd0) begin

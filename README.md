@@ -69,28 +69,50 @@
 - TX 已接入现有 encoder：
   - `rtl/enc_8b10b_4bytes.v`
   - `rtl/enc_8b10b.v`
-- RX 仍为骨架，等待现有 decoder 接入
+- RX 已引入现有 decoder 文件，尚未完成与 `rx_path` 的实际接线：
+  - `rtl/dec_10b8b.v`
+  - `rtl/dec_10b8b_4bytes.v`
+  - `rtl/dec_10b8b_4bytes_gpcs_glue.v`
+  - `rtl/dec_10b8b_4bytes_pipe_glue.v`
+  - `rx_path.sv` 当前仍引用占位模块 `decoder_8b10b_40to32`，需替换为实际 decoder
+- 顶层已完成 TX→RX 40-bit 并行环回连线（`rx_code = tx_code`）
 - 当前 serializer 已按 `MSB-first` 实现
+- DV 环境已搭建（`sim/`），含基础 testbench 框架：
+  - `smoke_test` — 最小冒烟测试
+  - `ts1_tx_test` — 发送连续 TS1 Ordered Set 并检查 `tx_code` 输出
 
 ## 目录
 
 ```text
 serdes_phy_model/
 ├── README.md
-└── rtl/
-    ├── pcie_phy_model_top.sv
-    ├── tx_path.sv
-    ├── rx_path.sv
-    ├── serializer.sv
-    ├── enc_8b10b_4bytes.v
-    └── enc_8b10b.v
+├── rtl/
+│   ├── pcie_phy_model_top.sv
+│   ├── tx_path.sv
+│   ├── rx_path.sv
+│   ├── serializer.sv
+│   ├── rtl_timescale.v
+│   ├── enc_8b10b_4bytes.v
+│   ├── enc_8b10b.v
+│   ├── dec_10b8b.v
+│   ├── dec_10b8b_4bytes.v
+│   ├── dec_10b8b_4bytes_gpcs_glue.v
+│   └── dec_10b8b_4bytes_pipe_glue.v
+└── sim/
+    ├── Makefile
+    ├── filelist.f
+    ├── tb/
+    └── tc/
+        ├── tc_dispatch.svh
+        ├── smoke_test.sv
+        └── ts1_tx_test.sv
 ```
 
 ## 下一步
 
-- 接入现有 `40b -> 32b` decoder
+- 将 `rx_path.sv` 中的占位 `decoder_8b10b_40to32` 替换为实际 decoder（`dec_10b8b_4bytes` 系列）
 - 完成 TX `40-bit` 并行环回到 RX decode 的联调
-- 增加最小 testbench，验证：
+- 验证：
   - 编码输出与解码输入位序一致
   - `rxdata/rxdatak` 能正确回读
   - `serial_tx` 的 bit 顺序符合约定
