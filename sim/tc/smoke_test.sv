@@ -120,6 +120,15 @@ task smoke_test();
         end
     end
 
+    repeat (2) @(posedge dut.serial_clk);
+    #1;
+    if (dut.u_tx_path.u_serializer.tx_active !== 1'b0 || serial_tx !== 1'b0) begin
+        $display("[ERROR] Phase 4: serializer did not return to idle after valid deassert");
+        err_count++;
+    end else begin
+        $display("[INFO] Phase 4: serializer returns to idle when no new valid word arrives");
+    end
+
     // ----------------------------------------------------------
     // Phase 5: Continuous encoding — send several words
     // ----------------------------------------------------------

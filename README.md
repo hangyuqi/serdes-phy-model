@@ -16,6 +16,7 @@
 - `pclk` 由内部 `serial_clk` 分频导出
 - TX 路径为 `32-bit -> 40-bit encode -> serial_tx`
 - RX 路径为 `TX 侧 40-bit 编码结果并行环回 -> decode -> 32-bit`
+- RX 对外提供 `rx_valid` 指示 `rxdata/rxdatak` 何时有效
 - `tx_code[39:0]` 作为调试观察口保留
 
 ## 第一版不包含
@@ -69,17 +70,26 @@
 - TX 已接入现有 encoder：
   - `rtl/enc_8b10b_4bytes.v`
   - `rtl/enc_8b10b.v`
-- RX 已引入现有 decoder 文件，尚未完成与 `rx_path` 的实际接线：
+- RX 已完成基于 `dec_10b8b.v` 的 40b->32b 解码接线：
+  - `rtl/decoder_8b10b_40to32.sv` 负责 4 组 `10b` 并行解码与 disparity 级联
+  - `rtl/rx_path.sv` 负责寄存输出与 `rx_valid`、`decode_err`、`disp_err` 对外接口
+- 工程内保留了原始 4-byte decoder 相关文件，当前版本尚未切换到该链路：
   - `rtl/dec_10b8b.v`
   - `rtl/dec_10b8b_4bytes.v`
   - `rtl/dec_10b8b_4bytes_gpcs_glue.v`
   - `rtl/dec_10b8b_4bytes_pipe_glue.v`
-  - `rx_path.sv` 当前仍引用占位模块 `decoder_8b10b_40to32`，需替换为实际 decoder
 - 顶层已完成 TX→RX 40-bit 并行环回连线（`rx_code = tx_code`）
-- 当前 serializer 已按 `MSB-first` 实现
+- 当前 serializer 已按 `MSB-first` 实现，并在无新有效字输入时返回 idle
+- RX 输出已提供 `rx_valid`，并在 RX 侧寄存器上补充 `#\`PCS_PD` C2Q 建模
+- 结合当前波形观察，RX 解码功能状态基本符合预期：
+  - `rx_valid` 与 `rxdata/rxdatak` 对齐
+  - `decode_err/disp_err` 在无效周期不保持脏值
+  - RX 输出相对 `pclk` 带 `PCS_PD` 延时
 - DV 环境已搭建（`sim/`），含基础 testbench 框架：
   - `smoke_test` — 最小冒烟测试
   - `ts1_tx_test` — 发送连续 TS1 Ordered Set 并检查 `tx_code` 输出
+  - `ts1_rx_decode_test` — 连续 TS1 Ordered Set 环回解码检查
+  - `ts1_single_word_loopback_test` — 单个 TS1 word 环回解码检查
 
 ## 目录
 
@@ -97,7 +107,8 @@ serdes_phy_model/
 │   ├── dec_10b8b.v
 │   ├── dec_10b8b_4bytes.v
 │   ├── dec_10b8b_4bytes_gpcs_glue.v
-│   └── dec_10b8b_4bytes_pipe_glue.v
+│   ├── dec_10b8b_4bytes_pipe_glue.v
+│   └── decoder_8b10b_40to32.sv
 └── sim/
     ├── Makefile
     ├── filelist.f
@@ -105,14 +116,13 @@ serdes_phy_model/
     └── tc/
         ├── tc_dispatch.svh
         ├── smoke_test.sv
+        ├── ts1_rx_decode_test.sv
+        ├── ts1_single_word_loopback_test.sv
         └── ts1_tx_test.sv
 ```
 
 ## 下一步
 
-- 将 `rx_path.sv` 中的占位 `decoder_8b10b_40to32` 替换为实际 decoder（`dec_10b8b_4bytes` 系列）
-- 完成 TX `40-bit` 并行环回到 RX decode 的联调
-- 验证：
-  - 编码输出与解码输入位序一致
-  - `rxdata/rxdatak` 能正确回读
-  - `serial_tx` 的 bit 顺序符合约定
+- tx串行发送顺序反向
+- rx实现串并转换
+- rx实现com字节对齐

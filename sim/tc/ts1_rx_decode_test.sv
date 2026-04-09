@@ -77,6 +77,11 @@ task ts1_rx_decode_test();
                 @(posedge pclk);
                 #1;  // let non-blocking assignments settle
 
+                if (rx_valid !== 1'b1) begin
+                    $display("[ERROR] Word[%0d]: rx_valid not asserted", i);
+                    err_count++;
+                end
+
                 // Data check
                 if (rxdata !== exp_data[i]) begin
                     $display("[ERROR] Word[%0d]: rxdata mismatch — exp=0x%08h got=0x%08h",

@@ -43,14 +43,14 @@ gen_dispatch:
 		printf '`include "%s.sv"\n' "$$n"; \
 	done; \
 	echo ''; \
-	echo 'task run_testcase(string name);'; \
-	echo '    case (name)'; \
+	echo 'task run_testcase();'; \
+	echo '    case (tc_name)'; \
 	for f in $(TC_DIR)/*.sv; do \
 		n=$$(basename "$$f" .sv); \
 		printf '        "%s": %s();\n' "$$n" "$$n"; \
 	done; \
 	echo '        default: begin'; \
-	echo '            $$display("[ERROR] Unknown testcase: %s", name);'; \
+	echo '            $$display("[ERROR] Unknown testcase: %s", tc_name);'; \
 	echo '            err_count++;'; \
 	echo '        end'; \
 	echo '    endcase'; \

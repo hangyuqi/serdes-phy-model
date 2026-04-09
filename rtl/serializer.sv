@@ -14,7 +14,7 @@ module serializer #(
     logic [BIT_CNT_W-1:0] bit_count;
     logic                 tx_active;
 
-    assign serial_tx = shift_reg[WIDTH-1];
+    assign serial_tx = tx_active ? shift_reg[WIDTH-1] : 1'b0;
 
     always_ff @(posedge serial_clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -27,11 +27,20 @@ module serializer #(
                 shift_reg <= parallel_data;
                 bit_count <= '0;
                 tx_active <= 1'b1;
+            end else begin
+                shift_reg <= '0;
+                bit_count <= '0;
             end
         end else if (bit_count == WIDTH - 1) begin
-            // Load a new 40-bit code word and start shifting out from MSB.
-            shift_reg <= parallel_data;
-            bit_count <= '0;
+            // Continue only when a fresh encoded word is available.
+            if (data_valid) begin
+                shift_reg <= parallel_data;
+                bit_count <= '0;
+            end else begin
+                shift_reg <= '0;
+                bit_count <= '0;
+                tx_active <= 1'b0;
+            end
         end else begin
             shift_reg <= {shift_reg[WIDTH-2:0], 1'b0};
             bit_count <= bit_count + 1'b1;

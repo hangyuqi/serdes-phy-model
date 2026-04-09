@@ -21,9 +21,9 @@ module decoder_8b10b_40to32 (
 
     always @(posedge pclk or negedge rst_n) begin
         if (!rst_n)
-            disparity_prev <= 1'b0;
+            disparity_prev <= #`PCS_PD 1'b0;
         else if (data_valid_in)
-            disparity_prev <= disparity_out_u3;
+            disparity_prev <= #`PCS_PD disparity_out_u3;
     end
 
     // Per-lane decode outputs

@@ -13,6 +13,7 @@ module tb_top;
 
     logic [31:0] rxdata;
     logic [3:0]  rxdatak;
+    logic        rx_valid;
     logic        decode_err;
     logic        disp_err;
     logic [39:0] tx_code;
@@ -30,6 +31,7 @@ module tb_top;
         .tx_valid   (tx_valid),
         .rxdata     (rxdata),
         .rxdatak    (rxdatak),
+        .rx_valid   (rx_valid),
         .decode_err (decode_err),
         .disp_err   (disp_err),
         .tx_code    (tx_code),
@@ -40,8 +42,8 @@ module tb_top;
     // ----------------------------------------------------------------
     // Test infrastructure
     // ----------------------------------------------------------------
-    string tc_name;
-    int    err_count;
+    reg [8*64-1:0] tc_name;
+    int            err_count;
 
     // Auto-generated: includes all tc/*.sv tasks and run_testcase()
     `include "tc_dispatch.svh"
@@ -51,9 +53,11 @@ module tb_top;
         if (!$value$plusargs("tc=%s", tc_name))
             tc_name = "smoke_test";
 
-        // FSDB waveform dump
+        // FSDB dump is available in the VCS/Verdi flow, but not in Icarus.
+`ifndef __ICARUS__
         $fsdbDumpfile({tc_name, ".fsdb"});
         $fsdbDumpvars(0, tb_top);
+`endif
 
         // Initialize inputs
         rst_n    = 1'b0;
@@ -68,7 +72,7 @@ module tb_top;
         $display("========================================");
 
         // Dispatch testcase
-        run_testcase(tc_name);
+        run_testcase();
 
         // Final report
         $display("========================================");
@@ -84,7 +88,7 @@ module tb_top;
 
     // Timeout watchdog
     initial begin
-        #1_000_000ns;
+        #1000000ns;
         $display("[ERROR] Simulation timeout!");
         $finish;
     end

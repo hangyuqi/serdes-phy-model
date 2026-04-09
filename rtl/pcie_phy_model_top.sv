@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module pcie_phy_model_top #(
     parameter realtime SERIAL_CLK_HALF_PERIOD = 200ps,
     parameter int  PCLK_DIV               = 40
@@ -9,6 +11,7 @@ module pcie_phy_model_top #(
     input  logic        tx_valid,
     output logic [31:0] rxdata,
     output logic [3:0]  rxdatak,
+    output logic        rx_valid,
     output logic        decode_err,
     output logic        disp_err,
     output logic [39:0] tx_code,
@@ -67,6 +70,7 @@ module pcie_phy_model_top #(
         .rx_code_valid(tx_code_valid),
         .rxdata       (rxdata),
         .rxdatak      (rxdatak),
+        .rx_valid     (rx_valid),
         .decode_err   (decode_err),
         .disp_err     (disp_err)
     );
