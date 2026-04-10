@@ -33,26 +33,19 @@
 
 ## 架构
 
-```mermaid
-flowchart LR
-    subgraph PHY["SerDes PHY"]
-        direction TB
-        subgraph tx_path[" tx_path "]
-            direction RL
-            ENC["enc_8b10b<br>32b → 40b"] --> SER["serializer<br>40b → 1b"]
-        end
-        subgraph rx_path[" rx_path "]
-            direction LR
-            DES["deserializer<br>1b → 40b"] --> BA["byte_aligner<br>COM detect"] --> DEC["dec_8b10b<br>40b → 32b"]
-        end
-        tx_path ~~~ rx_path
-    end
-
-    MAC["MAC"]
-
-    MAC -- "txdata 32b" --> ENC
-    DEC -- "rxdata 32b" --> MAC
-    SER -. "loopback" .-> DES
+```text
++-----------------------------------------------------------------+
+|                               PHY                               |
+|                                                                 |
+|        +------------+             +---------+                   |      32bit Tx      +-------+
+|  +-----| serializer |<------------|  8b10b  |<---------------------------------------|       |
+|  |     +------------+             +---------+                   |                    |       |
+|  |                                                              |                    |  MAC  |
+|  |                                                              |                    |       |
+|  |     +--------------+     +------------+     +---------+      |      32bit Rx      |       |
+|  +---->| deserializer |---->| byte align |---->|  10b8b  |-------------------------->|       |
+|        +--------------+     +------------+     +---------+      |                    +-------+
++-----------------------------------------------------------------+
 ```
 
 ## 关键约定
