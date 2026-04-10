@@ -48,9 +48,10 @@ task ts1_rx_decode_test();
     // Phase 2: Drive TS1 data back-to-back (tx_valid held high)
     //          and check rxdata with pipeline delay
     //
-    // Pipeline: txdata driven at EdgeN+PCS_PD
+    // Pipeline (serial loopback): txdata driven at EdgeN+PCS_PD
     //           -> tx_code valid after EdgeN+1 (encoder registered)
-    //           -> rxdata valid after EdgeN+2 (rx_path registered)
+    //           -> deserialized data after EdgeN+2 (serial loopback)
+    //           -> rxdata valid after EdgeN+3 (decoder + rx_path registered)
     // ----------------------------------------------------------
     fork
         // --- Driver: feed TS1 words continuously ---
@@ -67,9 +68,10 @@ task ts1_rx_decode_test();
             tx_valid = 1'b0;
         end
 
-        // --- Checker: verify rxdata after 2-edge pipeline ---
+        // --- Checker: verify rxdata after 3-edge pipeline ---
         begin
-            // Wait 2 posedges for pipeline to fill
+            // Wait 3 posedges for pipeline to fill (serial loopback adds 1 cycle)
+            @(posedge pclk);
             @(posedge pclk);
             @(posedge pclk);
 

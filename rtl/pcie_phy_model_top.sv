@@ -6,6 +6,7 @@ module pcie_phy_model_top #(
 ) (
     input  logic        rst_n,
     input  logic        rate,
+    input  logic        serial_rx,
     input  logic [31:0] txdata,
     input  logic [3:0]  txdatak,
     input  logic        tx_valid,
@@ -15,6 +16,7 @@ module pcie_phy_model_top #(
     output logic        decode_err,
     output logic        disp_err,
     output logic [39:0] tx_code,
+    output logic        tx_code_valid,
     output logic        serial_tx,
     output logic        pclk
 );
@@ -23,7 +25,6 @@ module pcie_phy_model_top #(
 
     logic                  serial_clk;
     logic [PCLK_DIV_W-1:0] pclk_div_count;
-    logic                  tx_code_valid;
     logic                  rate_unused;
 
     assign rate_unused = rate;
@@ -65,9 +66,9 @@ module pcie_phy_model_top #(
 
     rx_path u_rx_path (
         .pclk         (pclk),
+        .serial_clk   (serial_clk),
         .rst_n        (rst_n),
-        .rx_code      (tx_code),
-        .rx_code_valid(tx_code_valid),
+        .serial_rx    (serial_rx),
         .rxdata       (rxdata),
         .rxdatak      (rxdatak),
         .rx_valid     (rx_valid),

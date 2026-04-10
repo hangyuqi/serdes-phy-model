@@ -17,7 +17,9 @@ module tb_top;
     logic        decode_err;
     logic        disp_err;
     logic [39:0] tx_code;
+    logic        tx_code_valid;
     logic        serial_tx;
+    logic        serial_rx;
     logic        pclk;
 
     // ----------------------------------------------------------------
@@ -26,6 +28,7 @@ module tb_top;
     pcie_phy_model_top dut (
         .rst_n      (rst_n),
         .rate       (rate),
+        .serial_rx  (serial_rx),
         .txdata     (txdata),
         .txdatak    (txdatak),
         .tx_valid   (tx_valid),
@@ -35,9 +38,14 @@ module tb_top;
         .decode_err (decode_err),
         .disp_err   (disp_err),
         .tx_code    (tx_code),
+        .tx_code_valid(tx_code_valid),
         .serial_tx  (serial_tx),
         .pclk       (pclk)
     );
+
+    // Default external serial loopback. Individual tests can replace this later
+    // by editing tb_top if they need a custom serial source.
+    assign serial_rx = serial_tx;
 
     // ----------------------------------------------------------------
     // Test infrastructure

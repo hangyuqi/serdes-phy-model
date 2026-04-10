@@ -41,7 +41,7 @@ task smoke_test();
     end
 
     // Check: tx_code_valid should be high
-    if (dut.tx_code_valid !== 1'b1) begin
+    if (tx_code_valid !== 1'b1) begin
         $display("[ERROR] Phase 2: tx_code_valid not asserted after K28.5");
         err_count++;
     end
@@ -93,14 +93,11 @@ task smoke_test();
     @(posedge pclk);
     #`PCS_PD;
     tx_valid = 1'b0;
-    @(posedge pclk);
-    // tx_code now has the encoding of DEADBEEF
 
-    // Wait for serializer to load this word (bit_count reaches WIDTH-1)
-    wait (dut.u_tx_path.u_serializer.bit_count == 6'd39);
-    @(posedge dut.serial_clk);
-    // Serializer just loaded tx_code into shift_reg.
-    // Now capture 40 bits MSB-first.
+    // Wait for the serializer to load this frame and begin shifting.
+    // tx_active rises at the serial_clk edge after tx_code_valid is seen.
+    wait (dut.u_tx_path.u_serializer.tx_active == 1'b1);
+    // Capture 40 bits MSB-first during the active frame.
     begin
         logic [39:0] expected_code;
         expected_code = tx_code;
