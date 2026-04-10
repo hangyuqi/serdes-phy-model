@@ -15,13 +15,12 @@
 - 顶层不输入外部工作时钟，时钟由模型内部产生
 - `pclk` 由内部 `serial_clk` 分频导出
 - TX 路径为 `32-bit -> 40-bit encode -> serial_tx`
-- RX 路径为 `TX 侧 40-bit 编码结果并行环回 -> decode -> 32-bit`
+- RX 路径为 `TX 串行数据 -> 串并转换 -> decode -> 32-bit`
 - RX 对外提供 `rx_valid` 指示 `rxdata/rxdatak` 何时有效
 - `tx_code[39:0]` 作为调试观察口保留
 
 ## 第一版不包含
 
-- RX 串并转换
 - RX comma 对齐
 - RX 位边界恢复
 - 复杂 PIPE 控制语义
