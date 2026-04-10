@@ -11,7 +11,8 @@ module rx_path (
 );
 
     logic [39:0] rx_code_deser;
-    logic        rx_code_valid_deser;
+    logic [39:0] rx_code_aligned;
+    logic        byte_aligned;
     logic [31:0] decoded_rx_data;
     logic [3:0]  decoded_rx_datak;
     logic        decoded_err_raw;
@@ -25,15 +26,22 @@ module rx_path (
         .pclk          (pclk),
         .rst_n         (rst_n),
         .serial_rx     (serial_rx),
-        .parallel_data (rx_code_deser),
-        .data_valid    (rx_code_valid_deser)
+        .parallel_data (rx_code_deser)
+    );
+
+    byte_aligner u_byte_aligner (
+        .pclk     (pclk),
+        .rst_n    (rst_n),
+        .data_in  (rx_code_deser),
+        .data_out (rx_code_aligned),
+        .aligned  (byte_aligned)
     );
 
     decoder_8b10b_40to32 u_decoder (
         .pclk           (pclk),
         .rst_n          (rst_n),
-        .rx_code        (rx_code_deser),
-        .data_valid_in  (rx_code_valid_deser),
+        .rx_code        (rx_code_aligned),
+        .data_valid_in  (byte_aligned),
         .rxdata         (decoded_rx_data),
         .rxdatak        (decoded_rx_datak),
         .decode_err     (decoded_err_raw),

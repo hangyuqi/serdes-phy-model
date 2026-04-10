@@ -19,24 +19,38 @@ task ts1_single_word_loopback_test();
     localparam logic [31:0] TS1_W3 = {TS1_ID, TS1_ID, TS1_ID, TS1_ID};
     localparam logic [3:0]  TS1_K3 = 4'b0000;
 
-    int num_ts1 = 2;  // number of consecutive TS1 ordered sets
+    // ------------------------------------------------------------
+    // User-configurable parameters (also overridable via plusargs:
+    //   +num_ts1=30  +link_delay=13)
+    // ------------------------------------------------------------
+    int num_ts1;
+    int link_delay_cycles;
     int total_words;
 
-    logic [31:0] exp_data [0:7];
-    logic [3:0]  exp_k    [0:7];
+    // TS1 is a 4-word repeating pattern
+    logic [31:0] ts1_word [0:3];
+    logic [3:0]  ts1_k    [0:3];
+
+    // --- All declarations above, executable statements below ---
+
+    if (!$value$plusargs("num_ts1=%d", num_ts1))
+        num_ts1 = 20;
+    if (!$value$plusargs("link_delay=%d", link_delay_cycles))
+        link_delay_cycles = 7;
+
+    ts1_word[0] = TS1_W0;  ts1_k[0] = TS1_K0;
+    ts1_word[1] = TS1_W1;  ts1_k[1] = TS1_K1;
+    ts1_word[2] = TS1_W2;  ts1_k[2] = TS1_K2;
+    ts1_word[3] = TS1_W3;  ts1_k[3] = TS1_K3;
 
     total_words = num_ts1 * 4;
 
-    for (int i = 0; i < num_ts1; i++) begin
-        exp_data[i*4+0] = TS1_W0;  exp_k[i*4+0] = TS1_K0;
-        exp_data[i*4+1] = TS1_W1;  exp_k[i*4+1] = TS1_K1;
-        exp_data[i*4+2] = TS1_W2;  exp_k[i*4+2] = TS1_K2;
-        exp_data[i*4+3] = TS1_W3;  exp_k[i*4+3] = TS1_K3;
-    end
+    // Configure physical link delay (1 serial_clk cycle = 400ps)
+    link_delay = link_delay_cycles * 400ps;
 
     $display("[INFO] === ts1_single_word_loopback_test start ===");
-    $display("[INFO] Sending %0d Gen1 TS1 ordered sets (%0d words) via serial loopback",
-             num_ts1, total_words);
+    $display("[INFO] Sending %0d TS1 ordered sets (%0d words), link delay = %0d serial_clk cycles",
+             num_ts1, total_words, link_delay_cycles);
 
     // ----------------------------------------------------------
     // Phase 1: Reset
@@ -50,12 +64,7 @@ task ts1_single_word_loopback_test();
     @(posedge pclk);
 
     // ----------------------------------------------------------
-    // Phase 2: Drive TS1 words back-to-back and check RX loopback
-    //
-    // Pipeline (serial loopback): txdata driven at EdgeN+PCS_PD
-    //   -> tx_code valid   after EdgeN+1 (encoder registered)
-    //   -> deserialized    after EdgeN+2 (serial loopback)
-    //   -> rxdata valid    after EdgeN+3 (decoder + rx_path registered)
+    // Phase 2: Drive TS1 and check RX with byte-alignment
     // ----------------------------------------------------------
     fork
         // --- Driver: feed TS1 words continuously ---
@@ -63,8 +72,8 @@ task ts1_single_word_loopback_test();
             for (int i = 0; i < total_words; i++) begin
                 @(posedge pclk);
                 #`PCS_PD;
-                txdata   = exp_data[i];
-                txdatak  = exp_k[i];
+                txdata   = ts1_word[i % 4];
+                txdatak  = ts1_k[i % 4];
                 tx_valid = 1'b1;
             end
             @(posedge pclk);
@@ -72,47 +81,86 @@ task ts1_single_word_loopback_test();
             tx_valid = 1'b0;
         end
 
-        // --- Checker: verify rxdata after 3-edge pipeline ---
+        // --- Checker: wait for alignment, sync to COM, verify ---
         begin
-            // Wait 3 posedges for pipeline to fill (serial loopback)
-            @(posedge pclk);
-            @(posedge pclk);
-            @(posedge pclk);
+            int phase;
+            int words_checked;
+            int words_to_check;
+            int wait_cnt;
 
-            for (int i = 0; i < total_words; i++) begin
+            // 1) Wait for rx_valid (byte alignment achieved + pipeline filled)
+            wait_cnt = 0;
+            while (!rx_valid) begin
                 @(posedge pclk);
                 #1;
-
-                if (rx_valid !== 1'b1) begin
-                    $display("[ERROR] Word[%0d]: rx_valid not asserted", i);
+                wait_cnt++;
+                if (wait_cnt > 100) begin
+                    $display("[ERROR] Timed out waiting for rx_valid after %0d pclk cycles", wait_cnt);
                     err_count++;
+                    disable fork;
                 end
+            end
+            $display("[INFO] rx_valid asserted after %0d pclk cycles", wait_cnt);
 
-                if (rxdata !== exp_data[i]) begin
+            // 2) Synchronize: find COM word (TS1 word 0) to determine phase
+            wait_cnt = 0;
+            while (!(rxdata === ts1_word[0] && rxdatak === ts1_k[0])) begin
+                @(posedge pclk);
+                #1;
+                wait_cnt++;
+                if (wait_cnt > total_words) begin
+                    $display("[ERROR] COM word not found in received stream");
+                    err_count++;
+                    disable fork;
+                end
+            end
+            $display("[INFO] COM word detected after %0d extra cycles — byte alignment verified", wait_cnt);
+
+            // 3) Verify received TS1 pattern (leave 4-TS1 margin for pipeline drain)
+            words_to_check = (num_ts1 - 4) * 4;
+            if (words_to_check < 4) words_to_check = 4;
+
+            phase = 0;
+            words_checked = 0;
+
+            while (words_checked < words_to_check && rx_valid) begin
+                if (rxdata !== ts1_word[phase]) begin
                     $display("[ERROR] Word[%0d]: rxdata mismatch — exp=0x%08h got=0x%08h",
-                             i, exp_data[i], rxdata);
+                             words_checked, ts1_word[phase], rxdata);
                     err_count++;
                 end else begin
-                    $display("[INFO]  Word[%0d]: rxdata=0x%08h — OK", i, rxdata);
+                    $display("[INFO]  Word[%0d]: rxdata=0x%08h — OK", words_checked, rxdata);
                 end
 
-                if (rxdatak !== exp_k[i]) begin
+                if (rxdatak !== ts1_k[phase]) begin
                     $display("[ERROR] Word[%0d]: rxdatak mismatch — exp=4'b%04b got=4'b%04b",
-                             i, exp_k[i], rxdatak);
+                             words_checked, ts1_k[phase], rxdatak);
                     err_count++;
                 end
 
                 if (decode_err) begin
-                    $display("[ERROR] Word[%0d]: decode_err asserted", i);
+                    $display("[ERROR] Word[%0d]: decode_err asserted", words_checked);
                     err_count++;
                 end
                 if (disp_err) begin
-                    $display("[ERROR] Word[%0d]: disp_err asserted", i);
+                    $display("[ERROR] Word[%0d]: disp_err asserted", words_checked);
                     err_count++;
                 end
 
-                if ((i % 4) == 3)
-                    $display("[INFO]  TS1[%0d] loopback complete", i / 4);
+                if (phase == 3)
+                    $display("[INFO]  TS1[%0d] loopback complete", words_checked / 4);
+
+                phase = (phase + 1) % 4;
+                words_checked++;
+
+                @(posedge pclk);
+                #1;
+            end
+
+            $display("[INFO] Verified %0d words (%0d complete TS1 sets)", words_checked, words_checked / 4);
+            if (words_checked == 0) begin
+                $display("[ERROR] No valid words verified after alignment");
+                err_count++;
             end
         end
     join

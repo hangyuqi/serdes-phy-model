@@ -43,9 +43,10 @@ module tb_top;
         .pclk       (pclk)
     );
 
-    // Default external serial loopback. Individual tests can replace this later
-    // by editing tb_top if they need a custom serial source.
-    assign serial_rx = serial_tx;
+    // Serial loopback with configurable link delay.
+    // Tests set link_delay (realtime) before reset release to simulate physical channel latency.
+    realtime link_delay = 0;
+    always @(serial_tx) serial_rx <= #(link_delay) serial_tx;
 
     // ----------------------------------------------------------------
     // Test infrastructure

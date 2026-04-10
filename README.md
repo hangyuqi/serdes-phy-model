@@ -18,11 +18,13 @@
 - RX 路径为 `TX 串行数据 -> 串并转换 -> decode -> 32-bit`
 - RX 对外提供 `rx_valid` 指示 `rxdata/rxdatak` 何时有效
 - `tx_code[39:0]` 作为调试观察口保留
+- Rx通过COM pattern进行字节对齐
+
+## 第一版验证case ：./sim/tc/ts1_single_word_loopback_test.sv
+输入32bit TS1数据经过Tx编码和并串转换后环回Rx，Rx进行串并转换和COM对齐以及解码
 
 ## 第一版不包含
-
-- RX comma 对齐
-- RX 位边界恢复
+- byte align 持续监测
 - 复杂 PIPE 控制语义
 - 多 lane
 - 电气空闲、功耗状态、速率切换
@@ -31,23 +33,26 @@
 
 ## 架构
 
-```text
-                  +----------------------+
-                  |         MAC          |
-                  |   32-bit PIPE side   |
-                  +----------+-----------+
-                             |
-                             v
-                 +------------------------+
-                 |  pcie_phy_model_top    |
-                 |------------------------|
-                 |  tx_path               |
-                 |  rx_path               |
-                 |  internal 40b loopback |
-                 +-----------+------------+
-                             |
-                             v
-                         serial_tx
+```mermaid
+flowchart LR
+    subgraph PHY["SerDes PHY"]
+        direction TB
+        subgraph tx_path[" tx_path "]
+            direction RL
+            ENC["enc_8b10b<br>32b → 40b"] --> SER["serializer<br>40b → 1b"]
+        end
+        subgraph rx_path[" rx_path "]
+            direction LR
+            DES["deserializer<br>1b → 40b"] --> BA["byte_aligner<br>COM detect"] --> DEC["dec_8b10b<br>40b → 32b"]
+        end
+        tx_path ~~~ rx_path
+    end
+
+    MAC["MAC"]
+
+    MAC -- "txdata 32b" --> ENC
+    DEC -- "rxdata 32b" --> MAC
+    SER -. "loopback" .-> DES
 ```
 
 ## 关键约定
@@ -57,7 +62,7 @@
 - serializer 按 `MSB-first` 输出
 - 第一版固定 `serial_clk : pclk = 40 : 1`
 - TX 和 RX 使用同一时钟源
-- RX 第一版直接使用 TX 编码后的并行 `40-bit` 数据，不从 `serial_tx` 恢复
+- TX的串行数据在TB内部进行任意延时环回输入给RX
 
 ## 当前状态
 
@@ -77,13 +82,12 @@
   - `rtl/dec_10b8b_4bytes.v`
   - `rtl/dec_10b8b_4bytes_gpcs_glue.v`
   - `rtl/dec_10b8b_4bytes_pipe_glue.v`
-- 顶层已完成 TX→RX 40-bit 并行环回连线（`rx_code = tx_code`）
+- TB 串行环回支持可配置链路延时（`link_delay`），用于测试 byte alignment
+- `deserializer` 为常开模块，复位后持续移位，通过 pclk 边沿检测锁存 + pclk 寄存器实现 serial_clk→pclk 跨时钟域
+- `byte_aligner` 通过识别 K28.5 (COM) pattern 在 10 个可能 bit offset 中检测并锁定符号边界，输出对齐后的 40-bit 数据
+- RX 数据通路：`deserializer → byte_aligner → decoder_8b10b_40to32 → rx_path 输出寄存器`
 - 当前 serializer 已按 `MSB-first` 实现，并在无新有效字输入时返回 idle
 - RX 输出已提供 `rx_valid`，并在 RX 侧寄存器上补充 `#\`PCS_PD` C2Q 建模
-- 结合当前波形观察，RX 解码功能状态基本符合预期：
-  - `rx_valid` 与 `rxdata/rxdatak` 对齐
-  - `decode_err/disp_err` 在无效周期不保持脏值
-  - RX 输出相对 `pclk` 带 `PCS_PD` 延时
 - DV 环境已搭建（`sim/`），含基础 testbench 框架：
   - `smoke_test` — 最小冒烟测试
   - `ts1_tx_test` — 发送连续 TS1 Ordered Set 并检查 `tx_code` 输出
@@ -107,7 +111,9 @@ serdes_phy_model/
 │   ├── dec_10b8b_4bytes.v
 │   ├── dec_10b8b_4bytes_gpcs_glue.v
 │   ├── dec_10b8b_4bytes_pipe_glue.v
-│   └── decoder_8b10b_40to32.sv
+│   ├── decoder_8b10b_40to32.sv
+│   ├── deserializer.sv
+│   └── byte_aligner.sv
 └── sim/
     ├── Makefile
     ├── filelist.f
@@ -123,5 +129,5 @@ serdes_phy_model/
 ## 下一步
 
 - tx串行发送顺序反向
-- rx实现串并转换
-- rx实现com字节对齐
+- byte_aligner 持续监测：失锁后自动重新搜索 COM
+- DV验证环境完善（checker、driver）
