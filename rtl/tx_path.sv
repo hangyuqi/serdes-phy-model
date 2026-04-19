@@ -5,8 +5,6 @@ module tx_path (
     input  logic [31:0] txdata,
     input  logic [3:0]  txdatak,
     input  logic        tx_valid,
-    output logic [39:0] tx_code,
-    output logic        tx_code_valid,
     output logic        serial_tx
 );
 
@@ -37,16 +35,13 @@ module tx_path (
         .dout_vld           (encoded_tx_code_valid)
     );
 
-    assign tx_code       = encoded_tx_code;
-    assign tx_code_valid = encoded_tx_code_valid;
-
     serializer #(
         .WIDTH(40)
     ) u_serializer (
         .serial_clk    (serial_clk),
         .rst_n         (rst_n),
-        .parallel_data (tx_code),
-        .data_valid    (tx_code_valid),
+        .parallel_data (encoded_tx_code),
+        .data_valid    (encoded_tx_code_valid),
         .serial_tx     (serial_tx)
     );
 

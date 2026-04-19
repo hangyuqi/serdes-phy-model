@@ -15,8 +15,6 @@ module pcie_phy_model_top #(
     output logic        rx_valid,
     output logic        decode_err,
     output logic        disp_err,
-    output logic [39:0] tx_code,
-    output logic        tx_code_valid,
     output logic        serial_tx,
     output logic        pclk
 );
@@ -59,8 +57,6 @@ module pcie_phy_model_top #(
         .txdata       (txdata),
         .txdatak      (txdatak),
         .tx_valid     (tx_valid),
-        .tx_code      (tx_code),
-        .tx_code_valid(tx_code_valid),
         .serial_tx    (serial_tx)
     );
 
