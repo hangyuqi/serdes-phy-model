@@ -57,6 +57,24 @@
 - TX 和 RX 使用同一时钟源
 - TX的串行数据在TB内部进行任意延时环回输入给RX
 
+## 接口描述
+
+| name | dir | width | description |
+| --- | --- | --- | --- |
+| rst_n | in | 1 | 复位信号（低电平有效） |
+| rate | in | 1 | 速率控制信号，当前版本unuse |
+| serial_rx | in | 1 | 串行接收数据，当前版本由Tx串行输出环回而来 |
+| txdata | in | 32 | 并行发送数据，PIPE并行数据 |
+| txdatak | in | 4 | 发送数据控制符/命令标志 (K-character) |
+| tx_valid | in | 1 | 发送数据有效标志，高有效 |
+| rxdata | out | 32 | 并行接收数据，PIPE并行接收数据 |
+| rxdatak | out | 4 | 接收数据控制符/命令标志 (K-character) |
+| rx_valid | out | 1 | 接收数据有效标志，高有效 |
+| decode_err | out | 1 | 接收解码错误指示 (8b/10b 报错等) |
+| disp_err | out | 1 | 极性偏差错误指示 (Disparity Error) |
+| serial_tx | out | 1 | 串行发送数据，当前版本在TB内进行随机延时环回给Rx串行输入 |
+| pclk | out | 1 | 并行时钟输出 |
+
 ## 当前状态
 
 - 已建立最小骨架：
