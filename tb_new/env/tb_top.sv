@@ -13,7 +13,7 @@ module tb_top;
         serial_rx <= serial_tx;
     end
 
-    pcie_phy_dut u_dut (
+    pcie_phy_model_top u_dut (
         .rst_n      (vif.rst_n),
         .rate       (vif.rate),
         .serial_rx  (serial_rx),
@@ -30,7 +30,18 @@ module tb_top;
     );
 
     initial begin
-        $fsdbDumpfile("tb.fsdb");
+        string out_dir;
+        string fsdb_path;
+        
+        // 如果没有传入 OUT_DIR，默认为当前目录
+        if(!$value$plusargs("OUT_DIR=%s", out_dir)) begin
+            out_dir = "."; 
+        end
+
+        fsdb_path = {out_dir, "/tb.fsdb"};
+        $display("[%0t] [TB_TOP] Waveform will be saved to: %s", $time, fsdb_path);
+        
+        $fsdbDumpfile(fsdb_path);
         $fsdbDumpvars(0, tb_top);
     end
 

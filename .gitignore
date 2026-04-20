@@ -1,3 +1,5 @@
 # ignore sim out file
 /sim/out
 /sim/csrc
+/tb_new/build
+/tb_new/run

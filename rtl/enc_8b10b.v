@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 
 
-`include "../../RTL/rtl_timescale.v" 
+`include "rtl_timescale.v" 
 module enc_8b10b
 (
   input           [7:0]       din,

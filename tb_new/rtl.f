@@ -1,0 +1,12 @@
++incdir+../rtl
+../rtl/rtl_timescale.v
+../rtl/enc_8b10b.v
+../rtl/enc_8b10b_4bytes.v
+../rtl/dec_10b8b.v
+../rtl/serializer.sv
+../rtl/deserializer.sv
+../rtl/tx_path.sv
+../rtl/decoder_8b10b_40to32.sv
+../rtl/rx_path.sv
+../rtl/pcie_phy_model_top.sv
+../rtl/byte_aligner.sv

@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 
 
-`include "../../RTL/rtl_timescale.v" 
+`include "rtl_timescale.v" 
 module dec_10b8b_4bytes
 (
   input                             clk40,
