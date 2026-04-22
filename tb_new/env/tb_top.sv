@@ -8,9 +8,16 @@ module tb_top;
     phy_if vif(pclk);
 
     // 串行环回
+    realtime loopback_delay;
+
+    initial begin
+        // 每个case开始时采样一次
+        loopback_delay = $urandom_range(1, 5) * 100ps;
+        $display("Loopback delay for this case: %0t", loopback_delay);
+    end
+
     always @(serial_tx) begin
-        #( $urandom_range(1, 5) * 100ps ); 
-        serial_rx <= serial_tx;
+        serial_rx <= #(loopback_delay) serial_tx;
     end
 
     pcie_phy_model_top u_dut (

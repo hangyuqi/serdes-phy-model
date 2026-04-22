@@ -23,12 +23,28 @@ class pcie_ts_pkt;
         phy_trans beat0, beat1, beat2, beat3;
         bit [7:0] ts_id = (ts_type == TS1) ? 8'h4A : 8'h45;
         
+        // beat0 = new();
+        // beat0.data = {n_fts, lane_num, link_num, symbol_0};
+        // beat0.datak = 4'b0001; 
+
+        // beat1 = new();
+        // beat1.data = {ts_id, ts_id, trn_ctrl, rate_id};
+        // beat1.datak = 4'b0000;
+
+        // beat2 = new();
+        // beat2.data = {ts_id, ts_id, ts_id, ts_id};
+        // beat2.datak = 4'b0000;
+
+        // beat3 = new();
+        // beat3.data = {ts_id, ts_id, ts_id, ts_id};
+        // beat3.datak = 4'b0000;
+
         beat0 = new();
-        beat0.data = {n_fts, lane_num, link_num, symbol_0};
-        beat0.datak = 4'b0001; 
+        beat0.data = {symbol_0, link_num, lane_num, n_fts};
+        beat0.datak = 4'b1000; 
 
         beat1 = new();
-        beat1.data = {ts_id, ts_id, trn_ctrl, rate_id};
+        beat1.data = {rate_id, trn_ctrl, ts_id, ts_id};
         beat1.datak = 4'b0000;
 
         beat2 = new();

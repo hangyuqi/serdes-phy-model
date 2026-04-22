@@ -1,3 +1,4 @@
+`include "rtl_timescale.v" 
 interface phy_if(input logic pclk);
     logic        rst_n;  // 由 Test 驱动
     logic        rate;
@@ -17,7 +18,7 @@ interface phy_if(input logic pclk);
     logic        disp_err;
     
     clocking cb @(posedge pclk);
-        default input #1ns output #1ns;
+        default input #`PCS_PD output #`PCS_PD;
         output txdata, txdatak, tx_valid, rate;
         input  rxdata, rxdatak, rx_valid, decode_err, disp_err;
     endclocking
